@@ -1,11 +1,13 @@
 package Yernar_map;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.*;
 import java.io.*;
 import java.util.*;
 import java.util.List;
-import javax.imageio.ImageIO;
+import javax.swing.Timer;
 
 public class GamePanel extends JPanel {
     protected final int TILE_SIZE = 50;
@@ -13,21 +15,34 @@ public class GamePanel extends JPanel {
     protected Map<Integer, Image> tileImages = new HashMap<>();
     protected int selectedTile = 0; // по умолчанию "трава"
 
+    protected List<Image> waterFrames = new ArrayList<>();
+    protected int currentWaterFrame = 0;
+    protected Timer animationTimer;
+    public boolean showTileSelector = true;
+
     public GamePanel(String path) {
         loadMapFromFile(path);
         loadTileImages();
-        setPreferredSize(new Dimension(map[0].length * TILE_SIZE, map.length * TILE_SIZE + TILE_SIZE)); // доп. место под панель
+        setPreferredSize(new Dimension(map[0].length * TILE_SIZE, map.length * TILE_SIZE + TILE_SIZE));
     }
 
     protected void loadTileImages() {
         try {
             tileImages.put(0, ImageIO.read(new File("res/grass.png")));
             tileImages.put(1, ImageIO.read(new File("res/road.png")));
-            tileImages.put(2, ImageIO.read(new File("res/start.png"))); // старт
+            tileImages.put(2, ImageIO.read(new File("res/start.png")));
             tileImages.put(3, ImageIO.read(new File("res/finish.png")));
-            //tileImages.put(2, ImageIO.read(new File("res/tree.png"))); // добавить надо и другие текстуры
-            //tileImages.put(3, ImageIO.read(new File("res/tiles/tree.png")));
-            //tileImages.put(4, ImageIO.read(new File("res/tiles/rock.png")));
+
+            for (int i = 0; i < 3; i++) {
+                waterFrames.add(ImageIO.read(new File("res/water_" + i + ".png")));
+            }
+
+            animationTimer = new Timer(600, e -> {
+                currentWaterFrame = (currentWaterFrame + 1) % waterFrames.size();
+                repaint();
+            });
+            animationTimer.start();
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -54,7 +69,6 @@ public class GamePanel extends JPanel {
                 map[i] = rows.get(i);
             }
         } else {
-            // если пусто — создаём карту 15x20
             int targetRows = 15;
             int targetCols = 20;
             map = new int[targetRows][targetCols];
@@ -78,42 +92,39 @@ public class GamePanel extends JPanel {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-
         Graphics2D g2d = (Graphics2D) g;
 
-        // Отрисовка карты
         for (int row = 0; row < map.length; row++) {
             for (int col = 0; col < map[0].length; col++) {
                 int tile = map[row][col];
 
-                // Рисуем фон (например, траву) для каждой клетки
-                Image tileImage = tileImages.get(tile);
+                Image tileImage;
+                if (tile == 4 && !waterFrames.isEmpty()) {
+                    tileImage = waterFrames.get(currentWaterFrame);
+                } else {
+                    tileImage = tileImages.get(tile);
+                }
+
                 if (tileImage != null) {
                     g2d.drawImage(tileImage, col * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE, null);
                 } else {
-                    g2d.setColor(Color.PINK);  // В случае если нет изображения
+                    g2d.setColor(Color.PINK);
                     g2d.fillRect(col * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE);
                 }
 
-                // Рисуем объекты (например, дерево) поверх фона
-                if (tile == 4) {  // Предположим, что 4 это код для дерева
-                    Image treeImage = tileImages.get(4);  // Загрузка изображения дерева
-                    if (treeImage != null) {
-                        g2d.drawImage(treeImage, col * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE, null);
-                    }
-                }
-
-                // Рисуем границы клеток
-                g2d.setColor(new Color(0, 0, 0, 60)); // полупрозрачный черный для границ
-                g2d.setStroke(new BasicStroke(0.5f)); // тонкая линия
+                g2d.setColor(new Color(0, 0, 0, 60));
+                g2d.setStroke(new BasicStroke(0.5f));
                 g2d.drawRect(col * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE);
             }
         }
 
-        // Панель выбора тайлов внизу
-        int yOffset = map.length * TILE_SIZE; // положение панели внизу
+        int yOffset = map.length * TILE_SIZE;
         for (int i = 0; i <= 4; i++) {
             Image img = tileImages.get(i);
+            if (i == 4 && !waterFrames.isEmpty()) {
+                img = waterFrames.get(currentWaterFrame);
+            }
+
             if (img != null) {
                 g.drawImage(img, i * TILE_SIZE, yOffset, TILE_SIZE, TILE_SIZE, null);
                 if (i == selectedTile) {
@@ -124,23 +135,10 @@ public class GamePanel extends JPanel {
             }
         }
     }
-    // ЛОГИКА ХОДЬБЫ
-//    List<Point> enemyPath = gamePanel.findPath();  -> это писать в спавн врагов
-//if (enemyPath != null) {
-//        for (Point p : enemyPath) {
-//            System.out.println("Шаг: " + p.x + "," + p.y);
-//        }
-//    }
-
-
-
-
-
 
     public List<Point> findPath() {
         Point start = null, end = null;
 
-        // Находим старт и финиш
         for (int row = 0; row < map.length; row++) {
             for (int col = 0; col < map[0].length; col++) {
                 if (map[row][col] == 5) start = new Point(col, row);
@@ -159,7 +157,7 @@ public class GamePanel extends JPanel {
         queue.add(start);
         visited[start.y][start.x] = true;
 
-        int[][] directions = {{0,1}, {1,0}, {0,-1}, {-1,0}}; // вниз, вправо, вверх, влево
+        int[][] directions = {{0,1}, {1,0}, {0,-1}, {-1,0}};
 
         while (!queue.isEmpty()) {
             Point curr = queue.poll();
@@ -178,7 +176,6 @@ public class GamePanel extends JPanel {
             }
         }
 
-        // Восстанавливаем путь
         List<Point> path = new LinkedList<>();
         Point step = end;
         while (step != null && !step.equals(start)) {
@@ -196,8 +193,6 @@ public class GamePanel extends JPanel {
     }
 
     private boolean isWalkable(int tile) {
-        return tile == 1 || tile == 5 || tile == 6; // можно ходить по дороге, старту и финишу
+        return tile == 1 || tile == 5 || tile == 6;
     }
-
-
 }
