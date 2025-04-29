@@ -11,6 +11,7 @@ import javax.swing.Timer;
 
 public class GamePanel extends JPanel {
     protected final int TILE_SIZE = 50;
+    public boolean showTileSelector;
     protected int[][] map;
     protected Map<Integer, Image> tileImages = new HashMap<>();
     protected int selectedTile = 0; // по умолчанию "трава"
@@ -18,12 +19,24 @@ public class GamePanel extends JPanel {
     protected List<Image> waterFrames = new ArrayList<>();
     protected int currentWaterFrame = 0;
     protected Timer animationTimer;
-    public boolean showTileSelector = true;
+    protected boolean showPathPreview = false; // переключатель отображения пути
 
     public GamePanel(String path) {
         loadMapFromFile(path);
         loadTileImages();
         setPreferredSize(new Dimension(map[0].length * TILE_SIZE, map.length * TILE_SIZE + TILE_SIZE));
+
+        // Добавим клавишу "P" для переключения режима предпросмотра пути
+        setFocusable(true);
+        addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_P) {
+                    showPathPreview = !showPathPreview;
+                    repaint();
+                }
+            }
+        });
     }
 
     protected void loadTileImages() {
@@ -37,7 +50,7 @@ public class GamePanel extends JPanel {
                 waterFrames.add(ImageIO.read(new File("res/water_" + i + ".png")));
             }
 
-            animationTimer = new Timer(600, e -> {
+            animationTimer = new Timer(300, e -> {
                 currentWaterFrame = (currentWaterFrame + 1) % waterFrames.size();
                 repaint();
             });
@@ -118,6 +131,16 @@ public class GamePanel extends JPanel {
             }
         }
 
+        if (showPathPreview) {
+            List<Point> path = findPath();
+            if (path != null) {
+                g2d.setColor(Color.YELLOW);
+                for (Point p : path) {
+                    g2d.fillRect(p.x * TILE_SIZE + TILE_SIZE / 4, p.y * TILE_SIZE + TILE_SIZE / 4, TILE_SIZE / 2, TILE_SIZE / 2);
+                }
+            }
+        }
+
         int yOffset = map.length * TILE_SIZE;
         for (int i = 0; i <= 4; i++) {
             Image img = tileImages.get(i);
@@ -141,8 +164,8 @@ public class GamePanel extends JPanel {
 
         for (int row = 0; row < map.length; row++) {
             for (int col = 0; col < map[0].length; col++) {
-                if (map[row][col] == 5) start = new Point(col, row);
-                if (map[row][col] == 6) end = new Point(col, row);
+                if (map[row][col] == 2) start = new Point(col, row);
+                if (map[row][col] == 3) end = new Point(col, row);
             }
         }
 
@@ -193,6 +216,6 @@ public class GamePanel extends JPanel {
     }
 
     private boolean isWalkable(int tile) {
-        return tile == 1 || tile == 5 || tile == 6;
+        return tile == 1 || tile == 2 || tile == 3;  // Дорога (1), Старт (2), Финиш (3)
     }
 }
