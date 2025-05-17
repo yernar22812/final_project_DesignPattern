@@ -7,6 +7,7 @@ public class EditorPanel extends GamePanel {
 
     public EditorPanel(String path) {
         super(path);
+        this.isEditorMode = true;
         this.showTileSelector = true;
 
         addMouseListener(new MouseAdapter() {

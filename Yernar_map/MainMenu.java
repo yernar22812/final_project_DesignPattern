@@ -21,6 +21,7 @@ public class MainMenu extends JFrame {
 
         playButton.addActionListener(e -> {
             GamePanel panel = new GamePanel("map.txt");
+            panel.isEditorMode = false;
             panel.showTileSelector = false;
             showWindow("Игра", panel);
         });

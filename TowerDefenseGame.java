@@ -41,6 +41,7 @@ public class TowerDefenseGame extends GamePanel {
     private BufferedImage enemyImage;
     private Font gameFont;
     private Color hudBackgroundColor = new Color(0, 0, 0, 180);
+    private BufferedImage[] enemyImages = new BufferedImage[3];
 
     public TowerDefenseGame(String path) {
         super(path);
@@ -82,6 +83,13 @@ public class TowerDefenseGame extends GamePanel {
         setupKeyListeners();
         setupGameTimer();
         setupWaveTimer();
+        try {
+            enemyImages[0] = ImageIO.read(new File("res/enemy1.png"));
+            enemyImages[1] = ImageIO.read(new File("res/enemy2.png"));
+            enemyImages[2] = ImageIO.read(new File("res/enemy3.png"));
+        } catch (IOException e) {
+            System.out.println("Failed to load enemy images: " + e.getMessage());
+        }
     }
     
     private void addGlobalKeyBindings() {
@@ -445,8 +453,11 @@ public class TowerDefenseGame extends GamePanel {
                 System.out.println("Error: No valid path found for enemy!");
                 return;
             }
-            
+
             Enemy enemy = new Enemy(selectedPath, health, speed);
+            int randomIndex = (int)(Math.random() * 3); // от 0 до 2
+            enemy.setEnemyImage(enemyImages[randomIndex]);
+            enemies.add(enemy);
             
             // Set enemy image if available
             if (enemyImage != null) {
