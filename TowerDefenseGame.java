@@ -3,6 +3,7 @@ import Yernar_map.*;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.geom.Point2D;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -32,8 +33,11 @@ public class TowerDefenseGame extends GamePanel {
     private int enemiesSpawnedInCurrentWave = 0;
     private int enemiesKilledInCurrentWave = 0;
     private BufferedImage basicTowerImage;
+    private BufferedImage basicTurretImage;
     private BufferedImage areaTowerImage;
+    private BufferedImage areaTurretImage;
     private BufferedImage slowTowerImage;
+    private BufferedImage slowTurretImage;
     private BufferedImage coinImage;
     private BufferedImage heartImage;
     private BufferedImage waveImage;
@@ -63,8 +67,11 @@ public class TowerDefenseGame extends GamePanel {
             
             // Load tower images
             basicTowerImage = ImageIO.read(new File("res/basictower.png"));
+            basicTurretImage = ImageIO.read(new File("res/basicturret.png"));
             areaTowerImage = ImageIO.read(new File("res/areatower.png"));
+            areaTurretImage = ImageIO.read(new File("res/areaturret.png"));
             slowTowerImage = ImageIO.read(new File("res/slowtower.jpg"));
+            slowTurretImage = ImageIO.read(new File("res/slowturret.png"));
             
             // Не загружаем текстуры для интерфейса, будем использовать цветные круги
             coinImage = null;
@@ -232,7 +239,10 @@ public class TowerDefenseGame extends GamePanel {
                         if (money >= cost) {
                             newTower = new BasicTower(new Point(x, y));
                             if (basicTowerImage != null) {
-                                newTower.setTowerImage(basicTowerImage);
+                                newTower.setTowerBaseImage(basicTowerImage);
+                            }
+                            if (basicTurretImage != null) {
+                                newTower.setTowerTurretImage(basicTurretImage);
                             }
                         }
                         break;
@@ -241,7 +251,10 @@ public class TowerDefenseGame extends GamePanel {
                         if (money >= cost) {
                             newTower = new AreaTower(new Point(x, y));
                             if (areaTowerImage != null) {
-                                newTower.setTowerImage(areaTowerImage);
+                                newTower.setTowerBaseImage(areaTowerImage);
+                            }
+                            if (areaTurretImage != null) {
+                                newTower.setTowerTurretImage(areaTurretImage);
                             }
                         }
                         break;
@@ -250,7 +263,10 @@ public class TowerDefenseGame extends GamePanel {
                         if (money >= cost) {
                             newTower = new SlowTower(new Point(x, y));
                             if (slowTowerImage != null) {
-                                newTower.setTowerImage(slowTowerImage);
+                                newTower.setTowerBaseImage(slowTowerImage);
+                            }
+                            if (slowTurretImage != null) {
+                                newTower.setTowerTurretImage(slowTurretImage);
                             }
                         }
                         break;
@@ -343,13 +359,33 @@ public class TowerDefenseGame extends GamePanel {
                             }
                         }
                     } else if (tower instanceof AreaTower) {
+                        AreaTower areaTower = (AreaTower) tower;
+                        Enemy closestEnemy = null;
+                        double closestDistance = Double.MAX_VALUE;
+                        
                         for (Enemy enemy : enemies) {
                             if (tower.isInRange(enemy.getPosition())) {
                                 enemy.takeDamage(tower.damage);
                                 hasTarget = true;
+                                
+                                // Find the closest enemy for turret rotation
+                                double distance = Point2D.distance(
+                                    tower.getPosition().x, tower.getPosition().y,
+                                    enemy.getPosition().x, enemy.getPosition().y);
+                                    
+                                if (distance < closestDistance) {
+                                    closestDistance = distance;
+                                    closestEnemy = enemy;
+                                }
                             }
                         }
+                        
                         if (hasTarget) {
+                            // Set the closest enemy as the target for turret rotation
+                            if (closestEnemy != null) {
+                                areaTower.setTargetPosition(closestEnemy.getPosition());
+                            }
+                            
                             tower.attack();
                             try {
                                 soundPlayer.playSound("explosion");
@@ -359,13 +395,32 @@ public class TowerDefenseGame extends GamePanel {
                         }
                     } else if (tower instanceof SlowTower) {
                         SlowTower slowTower = (SlowTower) tower;
+                        Enemy closestEnemy = null;
+                        double closestDistance = Double.MAX_VALUE;
+                        
                         for (Enemy enemy : enemies) {
                             if (tower.isInRange(enemy.getPosition())) {
                                 enemy.applySlowEffect(slowTower.getSlowAmount(), slowTower.getSlowDuration());
                                 hasTarget = true;
+                                
+                                // Find the closest enemy for turret rotation
+                                double distance = Point2D.distance(
+                                    tower.getPosition().x, tower.getPosition().y,
+                                    enemy.getPosition().x, enemy.getPosition().y);
+                                    
+                                if (distance < closestDistance) {
+                                    closestDistance = distance;
+                                    closestEnemy = enemy;
+                                }
                             }
                         }
+                        
                         if (hasTarget) {
+                            // Set the closest enemy as the target for turret rotation
+                            if (closestEnemy != null) {
+                                slowTower.setTargetPosition(closestEnemy.getPosition());
+                            }
+                            
                             tower.attack();
                             try {
                                 soundPlayer.playSound("slow");

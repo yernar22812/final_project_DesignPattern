@@ -8,6 +8,7 @@ public class SlowTower extends Tower {
     private Color slowEffectColor = new Color(0, 100, 255, 80);
     private int slowEffectRadius = 0;
     private long lastSlowEffectTime = 0;
+    private Point targetPosition;
 
     public SlowTower(Point position) {
         super(position, 3, 5, 150, 0.5);  // Increased range from 2 to 3
@@ -20,6 +21,15 @@ public class SlowTower extends Tower {
         lastAttackTime = System.currentTimeMillis();
         lastSlowEffectTime = System.currentTimeMillis();
         slowEffectRadius = range * 50;  // Visual effect when tower attacks
+        
+        // Update turret angle if we have a target
+        if (targetPosition != null) {
+            setTurretAngle(calculateAngleTo(targetPosition));
+        }
+    }
+    
+    public void setTargetPosition(Point target) {
+        this.targetPosition = target;
     }
     
     @Override
