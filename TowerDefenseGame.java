@@ -32,6 +32,32 @@ public class TowerDefenseGame extends GamePanel {
     private int enemiesKilled = 0;
     private int enemiesSpawnedInCurrentWave = 0;
     private int enemiesKilledInCurrentWave = 0;
+    
+    // Метод для установки SoundPlayer из внешнего источника
+    public void setSoundPlayer(SoundPlayer soundPlayer) {
+        this.soundPlayer = soundPlayer;
+    }
+    
+    // Метод для приостановки игры
+    public void pauseGame() {
+        if (gameTimer != null) {
+            gameTimer.stop();
+        }
+        if (waveTimer != null) {
+            waveTimer.stop();
+        }
+    }
+    
+    // Метод для возобновления игры
+    public void resumeGame() {
+        if (gameTimer != null) {
+            gameTimer.start();
+        }
+        if (waveTimer != null && waveInProgress) {
+            waveTimer.start();
+        }
+    }
+    
     private BufferedImage basicTowerImage;
     private BufferedImage basicTurretImage;
     private BufferedImage areaTowerImage;
@@ -70,7 +96,7 @@ public class TowerDefenseGame extends GamePanel {
             basicTurretImage = ImageIO.read(new File("res/basicturret.png"));
             areaTowerImage = ImageIO.read(new File("res/areatower.png"));
             areaTurretImage = ImageIO.read(new File("res/areaturret.png"));
-            slowTowerImage = ImageIO.read(new File("res/slowtower.jpg"));
+            slowTowerImage = ImageIO.read(new File("res/slowtower.png"));
             slowTurretImage = ImageIO.read(new File("res/slowturret.png"));
             
             // Не загружаем текстуры для интерфейса, будем использовать цветные круги
@@ -82,7 +108,8 @@ public class TowerDefenseGame extends GamePanel {
             
             // Load custom font
             gameFont = new Font("Arial", Font.BOLD, 16);
-        } catch (IOException e) {
+        } catch (Exception e) {
+            // Обрабатываем любые другие исключения, которые могут возникнуть
             System.out.println("Warning: Resources could not be loaded: " + e.getMessage());
         }
         
@@ -244,6 +271,10 @@ public class TowerDefenseGame extends GamePanel {
                             if (basicTurretImage != null) {
                                 newTower.setTowerTurretImage(basicTurretImage);
                             }
+                            // Проигрываем звук покупки башни
+                            if (soundPlayer != null) {
+                                soundPlayer.playSound("BUYING");
+                            }
                         }
                         break;
                     case 1: // Area Tower
@@ -255,6 +286,10 @@ public class TowerDefenseGame extends GamePanel {
                             }
                             if (areaTurretImage != null) {
                                 newTower.setTowerTurretImage(areaTurretImage);
+                            }
+                            // Проигрываем звук покупки башни
+                            if (soundPlayer != null) {
+                                soundPlayer.playSound("BUYING");
                             }
                         }
                         break;
@@ -268,6 +303,11 @@ public class TowerDefenseGame extends GamePanel {
                             if (slowTurretImage != null) {
                                 newTower.setTowerTurretImage(slowTurretImage);
                             }
+                            // Проигрываем звук покупки башни и звук замораживания
+                            if (soundPlayer != null) {
+                                soundPlayer.playSound("BUYING");
+                                soundPlayer.playSound("freeze-04-101soundboards");
+                            }
                         }
                         break;
                     default:
@@ -279,7 +319,7 @@ public class TowerDefenseGame extends GamePanel {
                     money -= cost;
                     towers.add(newTower);
                     try {
-                        soundPlayer.playSound("build");
+                        soundPlayer.playSound("BUYING");
                     } catch (Exception ex) {
                         System.out.println("Error playing sound: " + ex.getMessage());
                     }
@@ -351,7 +391,7 @@ public class TowerDefenseGame extends GamePanel {
                                 basicTower.setTargetPosition(enemy.getPosition());
                                 tower.attack();
                                 try {
-                                    soundPlayer.playSound("shoot");
+                                    soundPlayer.playSound("basicsound");
                                 } catch (Exception ex) {
                                     System.out.println("Error playing sound: " + ex.getMessage());
                                 }
@@ -388,7 +428,7 @@ public class TowerDefenseGame extends GamePanel {
                             
                             tower.attack();
                             try {
-                                soundPlayer.playSound("explosion");
+                                soundPlayer.playSound("BOOOM");
                             } catch (Exception ex) {
                                 System.out.println("Error playing sound: " + ex.getMessage());
                             }
@@ -423,7 +463,7 @@ public class TowerDefenseGame extends GamePanel {
                             
                             tower.attack();
                             try {
-                                soundPlayer.playSound("slow");
+                                soundPlayer.playSound("freeze-04-101soundboards");
                             } catch (Exception ex) {
                                 System.out.println("Error playing sound: " + ex.getMessage());
                             }

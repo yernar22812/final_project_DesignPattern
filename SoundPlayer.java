@@ -7,6 +7,8 @@ import java.util.Map;
 public class SoundPlayer {
     private Map<String, Clip> soundClips = new HashMap<>();
     private boolean soundEnabled = true;
+    private float volume = 1.0f; // Default volume (0.0 to 1.0)
+    private FloatControl[] gainControls;
     
     public SoundPlayer() {
         // Пытаемся загрузить звуковые эффекты
@@ -22,6 +24,20 @@ public class SoundPlayer {
             loadSound("damage", "res/damage.wav");
             loadSound("coin", "res/coin.wav");
             loadSound("wave", "res/wave.wav");
+            loadSound("BUYING", "res/BUYING.mp3");
+            loadSound("basicsound", "res/basicsound.wav");
+            loadSound("BOOOM", "res/BOOOM.wav");
+            loadSound("freeze-04-101soundboards", "res/freeze-04-101soundboards.mp3");
+            loadSound("menu_click", "res/menu_click.wav");
+            
+            // Initialize gain controls array
+            gainControls = new FloatControl[soundClips.size()];
+            int i = 0;
+            for (Clip clip : soundClips.values()) {
+                if (clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+                    gainControls[i++] = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+                }
+            }
         } catch (Exception e) {
             System.out.println("Warning: Sound system not available. Sounds will be disabled.");
             soundEnabled = false;
@@ -54,6 +70,17 @@ public class SoundPlayer {
                 if (clip.isRunning()) {
                     clip.stop();
                 }
+                
+                // Apply volume before playing
+                if (clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+                    FloatControl gainControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+                    // Convert linear volume (0.0 to 1.0) to dB scale
+                    float dB = (volume > 0.0f) ? (float) (20.0 * Math.log10(volume)) : -80.0f;
+                    // Ensure the value is within the control's range
+                    dB = Math.max(gainControl.getMinimum(), Math.min(gainControl.getMaximum(), dB));
+                    gainControl.setValue(dB);
+                }
+                
                 clip.setFramePosition(0);
                 clip.start();
             } catch (Exception e) {
@@ -75,6 +102,42 @@ public class SoundPlayer {
                 }
             } catch (Exception e) {
                 System.out.println("Error stopping sound: " + e.getMessage());
+            }
+        }
+    }
+    
+    public boolean isSoundEnabled() {
+        return soundEnabled;
+    }
+    
+    public void setSoundEnabled(boolean enabled) {
+        this.soundEnabled = enabled;
+        if (!enabled) {
+            stopAllSounds();
+        }
+    }
+    
+    public float getVolume() {
+        return volume;
+    }
+    
+    public void setVolume(float volume) {
+        // Ensure volume is between 0.0 and 1.0
+        this.volume = Math.max(0.0f, Math.min(1.0f, volume));
+        
+        // Apply new volume to all currently loaded sounds
+        for (Clip clip : soundClips.values()) {
+            if (clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+                try {
+                    FloatControl gainControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+                    // Convert linear volume (0.0 to 1.0) to dB scale
+                    float dB = (volume > 0.0f) ? (float) (20.0 * Math.log10(volume)) : -80.0f;
+                    // Ensure the value is within the control's range
+                    dB = Math.max(gainControl.getMinimum(), Math.min(gainControl.getMaximum(), dB));
+                    gainControl.setValue(dB);
+                } catch (Exception e) {
+                    System.out.println("Error setting volume: " + e.getMessage());
+                }
             }
         }
     }
